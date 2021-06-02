@@ -21,8 +21,8 @@ IMAGEWIDTH = 320
 IMAGEHEIGHT = 240
 RESOLUTION = [IMAGEWIDTH,IMAGEHEIGHT]
 SHAPE = [IMAGEHEIGHT,IMAGEWIDTH]
-DISPLAYWIDTH = 480
-DISPLAYHEIGHT = 360
+DISPLAYWIDTH = 320
+DISPLAYHEIGHT = 240
 FPS = 30
 RECORD_FPS = 60
 THRESHOLD = 10
@@ -55,12 +55,12 @@ quit_pressed = False
 display_angle = True
 focus_value = 960
 focus_changed = True
-rec_duration = 3000
+rec_duration = 5000
 # compute center coordinates and radius for drawing a target
 centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
 radius = int(centerY // 2)
-inner_radius = radius - 20
+inner_radius = radius - 30
 target_size = 15
 # create mask to highlight circular section 
 circ_mask = np.zeros(SHAPE, dtype="uint8")
@@ -158,6 +158,9 @@ class cameraThread(QThread):
             # save current time to measure real fps
             #start_time = time.time()
             # loop to record images
+            for i in range(5):
+                ret, img = cap.read()
+            # loop to record images
             for i in range(total_frames):
                 ret, img = cap.read()
                 # write the current frame to images directory
@@ -170,7 +173,7 @@ class cameraThread(QThread):
             print("[INFO] Total frames recorded = " + str(total_frames))
             real_fps = round(1000*total_frames/rec_duration, 2)
             sec_per_frame = 1/real_fps
-            print("[INFO] Video recorded at " + str(real_fps) + " FPS")
+            #print("[INFO] Video recorded at " + str(real_fps) + " FPS")
 
             # COMPUTE ANGLES AND FREQ
             # define local variables
@@ -195,10 +198,10 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            outputDir2 = os.path.join("images", "2021-04-21-115143")
-            total_frames = 270
+            #outputDir2 = os.path.join("images", "2021-04-21-115143")
+            #total_frames = 270
             imagePaths = list(paths.list_images(outputDir))
-            imagePaths2 = list(paths.list_images(outputDir2))
+            #imagePaths2 = list(paths.list_images(outputDir2))
             # initialize the video and progress bar for processing
             widgets_mean = ["[INFO] Processing angles and frequencies...", progressbar.Percentage(), " ", 
                 progressbar.Bar()]
@@ -206,7 +209,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
@@ -275,7 +278,7 @@ class cameraThread(QThread):
                             first_swing = True
                         else:
                             if freq_frame_counter > 0 and sec_per_frame > 0:
-                                freq = round(1/(freq_frame_counter * sec_per_frame), 3)
+                                freq = round(1/(freq_frame_counter * sec_per_frame), 2)
                             freq_frame_counter = 0
                             first_swing = False
                     # counter to compute frequency
@@ -320,10 +323,11 @@ class cameraThread(QThread):
                                     y = y1
                                     h = h1
                                     w = w1
+                        #print(biggest_area_color)
                         # IF COLOR FILTER METHOD FOUND AN OBJECT
                         if object_fg_found:
                             # draw the contour and center of the shape on the image
-                            cv2.drawContours(image, [found_countour], -1, red, 1)
+                            cv2.drawContours(image, [found_countour], -1, red, 2)
                             # compute x,y in trigo space
                             trigX = cX - centerX
                             trigY = -(cY - centerY)
@@ -372,9 +376,9 @@ class cameraThread(QThread):
                                     # draw partial circle
                                     if angle < 0:
                                         angle = angle + 360
-                                        cv2.ellipse(image, (centerX, centerY), (25,25), 0, -start_angle , -(current_angle+360), deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -start_angle , -(current_angle+360), deepskyblue, -1)
                                     else:
-                                        cv2.ellipse(image, (centerX, centerY), (25,25), 0, -start_angle , -current_angle, deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -start_angle , -current_angle, deepskyblue, -1)
                                 # compute angle for CCW direction
                                 elif direction is COUNTER_CLOCKWISE:
                                     # compute delta with start angle
@@ -382,41 +386,43 @@ class cameraThread(QThread):
                                     # draw partial circle
                                     if angle < 0:
                                         angle = angle + 360
-                                        cv2.ellipse(image, (centerX, centerY), (25,25), 0, -current_angle, -(start_angle+360), deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -current_angle, -(start_angle+360), deepskyblue, -1)
                                     else:
-                                        cv2.ellipse(image, (centerX, centerY), (25,25), 0, -current_angle , -start_angle, deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -current_angle , -start_angle, deepskyblue, -1)
                                 # draw construction lines
-                                cv2.circle(image, (centerX, centerY), 2, deepskyblue, -1)
-                                cv2.circle(image, (cX, cY), 2, deepskyblue, -1)
-                                cv2.line(image, (centerX, centerY), (cX, cY), deepskyblue, 1)
+                                cv2.circle(image, (centerX, centerY), 3, deepskyblue, -1)
+                                cv2.circle(image, (cX, cY), 3, deepskyblue, -1)
+                                cv2.line(image, (centerX, centerY), (cX, cY), deepskyblue, 2)
                                 # save current values in previous values
                                 previous_angle = current_angle
                                 previous_direction = direction
                                 prev_cX = cX
                                 prev_cY = cY
-                    # draw line from center to start position
-                    if start_position_found:
-                        cv2.circle(image, (centerX, centerY), 2, deepskyblue, -1)
-                        cv2.circle(image, (startX, startY), 2, deepskyblue, -1)
-                        cv2.line(image, (centerX, centerY), (startX, startY), deepskyblue, 1)
+                            # draw line from center to start position
+                            if start_position_found:
+                                cv2.circle(image, (centerX, centerY), 3, deepskyblue, -1)
+                                cv2.circle(image, (startX, startY), 3, deepskyblue, -1)
+                                cv2.line(image, (centerX, centerY), (startX, startY), deepskyblue, 2)
+                    else:
+                        angle = 0
                     # display FPS
                     real_fps = str(int(real_fps))
-                    cv2.putText(image, real_fps, (image.shape[1]-50, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, red, 1)
-                    cv2.putText(image, "fps", (image.shape[1]-30, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, red, 1)
+                    cv2.putText(image, real_fps, (image.shape[1]-70, 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
+                    cv2.putText(image, "fps", (image.shape[1]-50, 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
                     # display frequency
                     freq_string = str(freq)
                     cv2.putText(image, freq_string, (image.shape[1]-90, image.shape[0]-40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, deepskyblue, 1)
-                    cv2.putText(image, "Hz", (image.shape[1]-40, image.shape[0]-40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, deepskyblue, 1)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
+                    cv2.putText(image, "Hz", (image.shape[1]-50, image.shape[0]-40),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
                     # display angle
                     angle_string = str(int(angle))
                     cv2.putText(image, angle_string, (image.shape[1]-90, image.shape[0]-20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, deepskyblue, 1)
-                    cv2.putText(image, "deg", (image.shape[1]-40, image.shape[0]-20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, deepskyblue, 1)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
+                    cv2.putText(image, "deg", (image.shape[1]-50, image.shape[0]-20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
                     # update progress bar
                     frame_counter = frame_counter + 1
                     pbar_mean.update(frame_counter)
@@ -494,8 +500,8 @@ class App(QDialog):
         self.duration1 = QCheckBox("1 sec")
         self.duration2 = QCheckBox("2 sec")
         self.duration3 = QCheckBox("3 sec")
-        self.duration3.setChecked(True)
         self.duration4 = QCheckBox("5 sec")
+        self.duration4.setChecked(True)
         self.duration5 = QCheckBox("10 sec")
         durationCheckGroup.addButton(self.duration1,1)
         durationCheckGroup.addButton(self.duration2,2)
@@ -514,7 +520,7 @@ class App(QDialog):
         angleGroupBox = QGroupBox()
         angleGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} " )
         angleLayout = QVBoxLayout()
-        angleLabel = QLabel("Mesure angle")
+        angleLabel = QLabel("Angle")
         angleLayout.addWidget(angleLabel)
         self.angleButton = QPushButton("ON", self)
         angleLayout.addWidget(self.angleButton)
@@ -524,10 +530,22 @@ class App(QDialog):
         paramGroupBox.setLayout(paramLayout)
         self.cameraLayout.addWidget(paramGroupBox)
         # canvas for camera stream
+        cameraGroupBox = QGroupBox()
+        cameraGroupBox.setFixedWidth(DISPLAYWIDTH)
+        cameraGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 12pt; font-weight: bold; color: deepskyblue}")
+        cameraLayout = QVBoxLayout()
+        cameraLayout.setContentsMargins(5,10,0,0)
+        cameraLabel = QLabel("Camera")
+        cameraLayout.addWidget(cameraLabel)
         self.cameraBox = QLabel(self)
-        self.cameraBox.resize(DISPLAYWIDTH, DISPLAYHEIGHT)
-        self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
-        self.cameraLayout.addWidget(self.cameraBox)
+        #self.cameraBox.setFixedWidth(DISPLAYWIDTH)
+        #self.cameraBox.setFixedHeight(DISPLAYHEIGHT)
+        #self.cameraBox.resize(DISPLAYWIDTH, DISPLAYHEIGHT)
+        #self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
+        cameraLayout.addWidget(self.cameraBox)
+        cameraLayout.addStretch(1)
+        cameraGroupBox.setLayout(cameraLayout)
+        self.cameraLayout.addWidget(cameraGroupBox)
         # slider for focus
         focusGroupBox = QGroupBox()
         focusGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 12pt; font-weight: bold; color: deepskyblue}")
@@ -568,7 +586,10 @@ class App(QDialog):
     # start button function
     def startPressed(self):
         global start_pressed
-        start_pressed = True
+        if start_pressed is True:
+            start_pressed = False
+        else:
+            start_pressed = True
     # quit button function
     def quitPressed(self):
         global quit_pressed
