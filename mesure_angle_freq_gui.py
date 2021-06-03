@@ -460,8 +460,9 @@ class App(QDialog):
         self.title = 'Mesure angle et fréquence'
         self.left = 0
         self.top = 0
-        self.width = 640
+        self.width = 800
         self.height = 480
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.initUI()
     # init the UI app
     def initUI(self):
@@ -487,7 +488,7 @@ class App(QDialog):
         self.cameraLayout = QHBoxLayout()
         # layout for parameter
         paramGroupBox = QWidget()
-        paramGroupBox.setStyleSheet("QLabel {font-size: 12pt; font-weight: bold; color: deepskyblue} QCheckBox {color: deepskyblue ;font-size: 10pt; font-weight: bold;}")
+        paramGroupBox.setStyleSheet("QLabel {font-size: 15pt; font-weight: bold; color: deepskyblue} QCheckBox {color: deepskyblue ;font-size: 12pt; font-weight: bold;}")
         paramLayout = QVBoxLayout()
         paramLayout.setContentsMargins(0,0,0,0)
         # duration checkbox
@@ -533,7 +534,7 @@ class App(QDialog):
         # canvas for camera stream
         cameraGroupBox = QGroupBox()
         cameraGroupBox.setFixedWidth(DISPLAYWIDTH)
-        cameraGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 12pt; font-weight: bold; color: deepskyblue}")
+        cameraGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 15pt; font-weight: bold; color: deepskyblue}")
         cameraLayout = QVBoxLayout()
         cameraLayout.setContentsMargins(5,10,0,0)
         cameraLabel = QLabel("Camera")
@@ -549,7 +550,7 @@ class App(QDialog):
         self.cameraLayout.addWidget(cameraGroupBox)
         # slider for focus
         focusGroupBox = QGroupBox()
-        focusGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 12pt; font-weight: bold; color: deepskyblue}")
+        focusGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 15pt; font-weight: bold; color: deepskyblue}")
         focusLayout = QVBoxLayout()
         angleLabel = QLabel("Focus")
         focusLayout.addWidget(angleLabel)
@@ -571,6 +572,7 @@ class App(QDialog):
         buttonGroupBox = QGroupBox()
         buttonGroupBox.setStyleSheet("QPushButton {color: springgreen; font-size: 16pt; font-weight: bold; border: 2px solid springgreen}")
         buttonsLayout = QHBoxLayout()
+        #buttonsLayout.setContentsMargins(0,0,0,0)
         saveButton = QPushButton("SAVE")
         saveButton.setMinimumHeight(50)
         buttonsLayout.addWidget(saveButton)
