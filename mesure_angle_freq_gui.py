@@ -3,13 +3,10 @@ import sys
 import cv2
 import os
 import time
-from picamera import PiCamera
 from datetime import datetime
 import imutils
-from imutils.video.pivideostream import PiVideoStream
 import numpy as np
 import progressbar
-import subprocess
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -32,7 +29,7 @@ BLURSIZE = (15,15)
 blue = (255,0,0)
 deepskyblue = (255,191,0)
 red = (0,0,255)
-green = (127,255,0)
+green = (128,255,0)
 white = (255,255,255)
 black = (0,0,0)
 CLOCKWISE = 1
@@ -56,6 +53,7 @@ display_angle = True
 focus_value = 960
 focus_changed = True
 rec_duration = 5000
+running = False
 # compute center coordinates and radius for drawing a target
 centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
@@ -92,11 +90,13 @@ class cameraThread(QThread):
         global focus_changed
         global previous_diff
         global rec_duration
+        global running
         cap = cv2.VideoCapture(0)
         # main loop
         while self.ThreadActive:
             # setup camera
             print("[INFO] Warming up camera...")
+            running = False
             cap.set(cv2.CAP_PROP_FRAME_WIDTH,IMAGEWIDTH)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT,IMAGEHEIGHT)
             cap.set(cv2.CAP_PROP_FPS, FPS)
@@ -115,9 +115,16 @@ class cameraThread(QThread):
                 cv2.line(image, (centerX, centerY), (centerX, centerY + target_size), red, 2)
                 cv2.line(image, (centerX, centerY), (centerX - target_size, centerY), red, 2)
                 cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 2)
+                # display datetime
                 ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
                 cv2.putText(image, ts, (10, image.shape[0]-10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.3, green, 1)
+                # display FPS
+                fps = str(int(RECORD_FPS))
+                cv2.putText(image, fps, (image.shape[1]-70, 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
+                cv2.putText(image, "fps", (image.shape[1]-50, 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
                 # convert from opencv format to pyqt format
                 imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 #flippedImage = cv2.flip(imageRGB, 1)
@@ -129,9 +136,6 @@ class cameraThread(QThread):
                 if start_pressed:
                     start_pressed = False
                     break
-                # if `quit` is pressed, break from the loop and stop program
-                elif quit_pressed:
-                    break
                 # adjust focus
                 if focus_changed:
                     value = (focus_value<<4) & 0x3ff0
@@ -141,10 +145,7 @@ class cameraThread(QThread):
                     time.sleep(0.5)
                     focus_changed = False
             focus_changed = True
-            # stop program if quit is pressed
-            if quit_pressed:
-                quit_pressed = False
-                break
+            running = True
             print("[INFO] Recording video at " + str(RECORD_FPS) + " FPS...")
             # compute total amount of frames to record
             total_frames = int(RECORD_FPS * rec_duration / 1000)
@@ -198,10 +199,10 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            #outputDir2 = os.path.join("images", "2021-04-21-115143")
-            #total_frames = 270
+            outputDir2 = os.path.join("images", "2021-05-28-165733")
+            total_frames = 270
             imagePaths = list(paths.list_images(outputDir))
-            #imagePaths2 = list(paths.list_images(outputDir2))
+            imagePaths2 = list(paths.list_images(outputDir2))
             # initialize the video and progress bar for processing
             widgets_mean = ["[INFO] Processing angles and frequencies...", progressbar.Percentage(), " ", 
                 progressbar.Bar()]
@@ -209,7 +210,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
@@ -447,10 +448,10 @@ class cameraThread(QThread):
             for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
                 os.remove(imagePath)
             os.rmdir(outputDir)
-        # stop camera stream
-        def stop(self):
-            self.ThreadActive = False
-            self.quit()
+    # stop camera stream
+    def stop(self):
+        self.ThreadActive = False
+        self.quit()
 # create GUI app
 class App(QDialog):
     # define some variables
@@ -568,7 +569,7 @@ class App(QDialog):
     def createButtonsLayout(self):
         self.buttonGroupLayout = QHBoxLayout()
         buttonGroupBox = QGroupBox()
-        buttonGroupBox.setStyleSheet("QPushButton {background-color: deepskyblue; color: black; font-size: 16pt; font-weight: bold;}")
+        buttonGroupBox.setStyleSheet("QPushButton {color: springgreen; font-size: 16pt; font-weight: bold; border: 2px solid springgreen}")
         buttonsLayout = QHBoxLayout()
         saveButton = QPushButton("SAVE")
         saveButton.setMinimumHeight(50)
@@ -593,7 +594,10 @@ class App(QDialog):
     # quit button function
     def quitPressed(self):
         global quit_pressed
+        global running
         quit_pressed = True
+        if running is False:
+            self.stopApp()
     def anglePressed(self):
         global display_angle
         if display_angle:
