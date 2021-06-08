@@ -24,7 +24,7 @@ FPS = 30
 RECORD_FPS = 60
 THRESHOLD = 10
 MIN_AREA = 1000
-MIN_AREA_DIFF = 350
+MIN_AREA_DIFF = 500
 BLURSIZE = (15,15)
 blue = (255,0,0)
 deepskyblue = (255,191,0)
@@ -34,7 +34,7 @@ white = (255,255,255)
 black = (0,0,0)
 CLOCKWISE = 1
 COUNTER_CLOCKWISE = 2
-STATIC_COUNTER_THRESH = 3
+STATIC_COUNTER_THRESH = 2
 #define some variables
 startX = 0
 startY = 0
@@ -58,7 +58,7 @@ running = False
 centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
 radius = int(centerY // 3)
-inner_radius = radius // 2
+inner_radius = 4*radius // 5
 target_size = inner_radius // 2
 ellipse_size = inner_radius // 2
 # create mask to highlight circular section 
@@ -92,6 +92,7 @@ class cameraThread(QThread):
         global previous_diff
         global rec_duration
         global running
+        object_moving_counter = 0
         cap = cv2.VideoCapture(0)
         # main loop
         while self.ThreadActive:
@@ -197,7 +198,7 @@ class cameraThread(QThread):
             prev_cX = 0
             prev_cY = 0
             outputDir2 = os.path.join("images", "2021-06-04-172344")
-            total_frames = 270
+            total_frames = 300
             imagePaths = list(paths.list_images(outputDir))
             imagePaths2 = list(paths.list_images(outputDir2))
             # initialize the video and progress bar for processing
@@ -254,7 +255,6 @@ class cameraThread(QThread):
                             (x1, y1, w1, h1) = cv2.boundingRect(c)
                             # get an approximate area of the contour
                             found_area = found_area + w1*h1 
-                    #print(found_area)
                     # check for moving object
                     object_moving = False
                     if found_area > MIN_AREA_DIFF:
@@ -265,7 +265,10 @@ class cameraThread(QThread):
                         static_image_counter = STATIC_COUNTER_THRESH
                     # if moving object
                     elif object_moving:
-                        static_image_counter = 0
+                        object_moving_counter = object_moving_counter + 1
+                        if object_moving_counter > 1 and static_image_counter > 0:
+                            static_image_counter = 0
+                            object_moving_counter = 0
                     # if no moving object
                     else:
                         static_image_counter = static_image_counter + 1
@@ -276,6 +279,7 @@ class cameraThread(QThread):
                         else:
                             if freq_frame_counter > 0 and sec_per_frame > 0:
                                 freq = round(1/(freq_frame_counter * sec_per_frame), 2)
+                                print(freq)
                             freq_frame_counter = 0
                             first_swing = False
                     # counter to compute frequency
@@ -423,7 +427,6 @@ class cameraThread(QThread):
                     # update progress bar
                     frame_counter = frame_counter + 1
                     pbar_mean.update(frame_counter)
-                    #cv2.imshow("Mesure angle balancier",image)
                     # convert from opencv format to pyqt format
                     imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                     #flippedImage = cv2.flip(imageRGB, 1)
