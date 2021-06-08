@@ -24,7 +24,7 @@ FPS = 30
 RECORD_FPS = 60
 THRESHOLD = 10
 MIN_AREA = 1000
-MIN_AREA_DIFF = 1000
+MIN_AREA_DIFF = 350
 BLURSIZE = (15,15)
 blue = (255,0,0)
 deepskyblue = (255,191,0)
@@ -57,9 +57,10 @@ running = False
 # compute center coordinates and radius for drawing a target
 centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
-radius = int(centerY // 2)
-inner_radius = radius - 30
+radius = int(centerY // 3)
+inner_radius = radius // 2
 target_size = 15
+ellipse_size = inner_radius // 2
 # create mask to highlight circular section 
 circ_mask = np.zeros(SHAPE, dtype="uint8")
 cv2.circle(circ_mask, (centerX, centerY), radius, white, -1)
@@ -199,10 +200,10 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            outputDir2 = os.path.join("images", "2021-05-28-165733")
-            total_frames = 270
+            #outputDir2 = os.path.join("images", "2021-05-28-165733")
+            #total_frames = 270
             imagePaths = list(paths.list_images(outputDir))
-            imagePaths2 = list(paths.list_images(outputDir2))
+            #imagePaths2 = list(paths.list_images(outputDir2))
             # initialize the video and progress bar for processing
             widgets_mean = ["[INFO] Processing angles and frequencies...", progressbar.Percentage(), " ", 
                 progressbar.Bar()]
@@ -210,7 +211,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
@@ -243,6 +244,7 @@ class cameraThread(QThread):
                                         cv2.CHAIN_APPROX_SIMPLE)
                     cnts_diff = imutils.grab_contours(cnts_diff)
                     biggest_area_diff = 0
+                    found_area = 0
                     # loop through all found contours
                     for c in cnts_diff:
                         M = cv2.moments(c)
@@ -255,13 +257,11 @@ class cameraThread(QThread):
                             # compute the bounding box for the contour
                             (x1, y1, w1, h1) = cv2.boundingRect(c)
                             # get an approximate area of the contour
-                            found_area = w1*h1 
-                            # find the largest bounding rectangle
-                            if (found_area > biggest_area_diff):  
-                                biggest_area_diff = found_area
+                            found_area = found_area + w1*h1 
+                    #print(found_area)
                     # check for moving object
                     object_moving = False
-                    if biggest_area_diff > MIN_AREA_DIFF:
+                    if found_area > MIN_AREA_DIFF:
                         object_moving = True
                     # check if first image
                     if first_image_diff is None:
@@ -429,7 +429,7 @@ class cameraThread(QThread):
                     pbar_mean.update(frame_counter)
                     #cv2.imshow("Mesure angle balancier",image)
                     # convert from opencv format to pyqt format
-                    imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    imageRGB = cv2.cvtColor(thresh_diff, cv2.COLOR_BGR2RGB)
                     #flippedImage = cv2.flip(imageRGB, 1)
                     convertToQtFormat = QImage(imageRGB.data, imageRGB.shape[1], imageRGB.shape[0], QImage.Format_RGB888)
                     qtImage = convertToQtFormat.scaled(DISPLAYWIDTH, DISPLAYHEIGHT, Qt.KeepAspectRatio)
@@ -570,19 +570,22 @@ class App(QDialog):
     def createButtonsLayout(self):
         self.buttonGroupLayout = QHBoxLayout()
         buttonGroupBox = QGroupBox()
-        buttonGroupBox.setStyleSheet("QPushButton {color: springgreen; font-size: 16pt; font-weight: bold; border: 2px solid springgreen}")
+        buttonGroupBox.setStyleSheet("QPushButton {font-size: 16pt; font-weight: bold;}")
         buttonsLayout = QHBoxLayout()
         #buttonsLayout.setContentsMargins(0,0,0,0)
         saveButton = QPushButton("SAVE")
         saveButton.setMinimumHeight(50)
+        saveButton.setStyleSheet("QPushButton {color: deepskyblue; border: 2px solid deepskyblue}")
         buttonsLayout.addWidget(saveButton)
         startButton = QPushButton("START")
         startButton.clicked.connect(self.startPressed)
         startButton.setMinimumHeight(50)
+        startButton.setStyleSheet("QPushButton {color: springgreen; border: 2px solid springgreen}")
         buttonsLayout.addWidget(startButton)
         quitButton = QPushButton("QUIT")
         quitButton.clicked.connect(self.quitPressed)
         quitButton.setMinimumHeight(50)
+        quitButton.setStyleSheet("QPushButton {color: red; border: 2px solid red}")
         buttonsLayout.addWidget(quitButton)
         buttonGroupBox.setLayout(buttonsLayout)
         self.buttonGroupLayout.addWidget(buttonGroupBox)
