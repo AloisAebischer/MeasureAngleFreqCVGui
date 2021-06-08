@@ -18,8 +18,8 @@ IMAGEWIDTH = 320
 IMAGEHEIGHT = 240
 RESOLUTION = [IMAGEWIDTH,IMAGEHEIGHT]
 SHAPE = [IMAGEHEIGHT,IMAGEWIDTH]
-DISPLAYWIDTH = 320
-DISPLAYHEIGHT = 240
+DISPLAYWIDTH = 640
+DISPLAYHEIGHT = 480
 FPS = 30
 RECORD_FPS = 60
 THRESHOLD = 10
@@ -59,7 +59,7 @@ centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
 radius = int(centerY // 3)
 inner_radius = radius // 2
-target_size = 15
+target_size = inner_radius // 2
 ellipse_size = inner_radius // 2
 # create mask to highlight circular section 
 circ_mask = np.zeros(SHAPE, dtype="uint8")
@@ -107,32 +107,33 @@ class cameraThread(QThread):
             while True:
                 # grab the frame from the stream
                 ret, image = cap.read()
-                #image = imutils.resize(image, width=IMAGEWIDTH)
-                # draw circular area used for computation
-                cv2.circle(image, (centerX, centerY), radius, red, 2)
-                cv2.circle(image, (centerX, centerY), inner_radius, red, 2)
-                # draw target at the center
-                cv2.line(image, (centerX, centerY), (centerX + target_size, centerY), red, 2)
-                cv2.line(image, (centerX, centerY), (centerX, centerY + target_size), red, 2)
-                cv2.line(image, (centerX, centerY), (centerX - target_size, centerY), red, 2)
-                cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 2)
-                # display datetime
-                ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
-                cv2.putText(image, ts, (10, image.shape[0]-10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.3, green, 1)
-                # display FPS
-                fps = str(int(RECORD_FPS))
-                cv2.putText(image, fps, (image.shape[1]-70, 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
-                cv2.putText(image, "fps", (image.shape[1]-50, 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
-                # convert from opencv format to pyqt format
-                imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                #flippedImage = cv2.flip(imageRGB, 1)
-                convertToQtFormat = QImage(imageRGB.data, imageRGB.shape[1], imageRGB.shape[0], QImage.Format_RGB888)
-                qtImage = convertToQtFormat.scaled(DISPLAYWIDTH, DISPLAYHEIGHT, Qt.KeepAspectRatio)
-                # display image
-                self.imageUpdate.emit(qtImage)
+                if ret:
+                    #image = imutils.resize(image, width=DISPLAYWIDTH)
+                    # draw circular area used for computation
+                    cv2.circle(image, (centerX, centerY), radius, red, 3)
+                    cv2.circle(image, (centerX, centerY), inner_radius, red, 3)
+                    # draw target at the center
+                    cv2.line(image, (centerX, centerY), (centerX + target_size, centerY), red, 3)
+                    cv2.line(image, (centerX, centerY), (centerX, centerY + target_size), red, 3)
+                    cv2.line(image, (centerX, centerY), (centerX - target_size, centerY), red, 3)
+                    cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 3)
+                    # display datetime
+                    ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
+                    cv2.putText(image, ts, (10, image.shape[0]-10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, green, 1)
+                    # display FPS
+                    fps = str(int(RECORD_FPS))
+                    cv2.putText(image, fps, (10, 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
+                    cv2.putText(image, "fps", (30, 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
+                    # convert from opencv format to pyqt format
+                    imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    #flippedImage = cv2.flip(imageRGB, 1)
+                    convertToQtFormat = QImage(imageRGB.data, imageRGB.shape[1], imageRGB.shape[0], QImage.Format_RGB888)
+                    qtImage = convertToQtFormat.scaled(DISPLAYWIDTH, DISPLAYHEIGHT, Qt.KeepAspectRatio)
+                    # display image
+                    self.imageUpdate.emit(qtImage)
                 # if `start` is pressed, break from the loop and start recording
                 if start_pressed:
                     start_pressed = False
@@ -154,12 +155,10 @@ class cameraThread(QThread):
             outputDir = os.path.join("images",
                 datetime.now().strftime("%Y-%m-%d-%H%M%S"))
             os.makedirs(outputDir)
-            # set fps for recording
+            # set resolution/fps for recording
             cap.set(cv2.CAP_PROP_FPS, RECORD_FPS)
             time.sleep(1)
-            # save current time to measure real fps
-            #start_time = time.time()
-            # loop to record images
+            # skip first 5 images
             for i in range(5):
                 ret, img = cap.read()
             # loop to record images
@@ -169,9 +168,6 @@ class cameraThread(QThread):
                 if ret:
                     filename = "{}.jpg".format(str(i).zfill(16))
                     cv2.imwrite(os.path.join(outputDir, filename), img)
-            # compute elapsed time to measure real fps
-            #end_time = time.time()
-            #elapsed_time = round(end_time - start_time, 2)
             print("[INFO] Total frames recorded = " + str(total_frames))
             real_fps = round(1000*total_frames/rec_duration, 2)
             sec_per_frame = 1/real_fps
@@ -200,10 +196,10 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            #outputDir2 = os.path.join("images", "2021-05-28-165733")
-            #total_frames = 270
+            outputDir2 = os.path.join("images", "2021-06-04-172344")
+            total_frames = 270
             imagePaths = list(paths.list_images(outputDir))
-            #imagePaths2 = list(paths.list_images(outputDir2))
+            imagePaths2 = list(paths.list_images(outputDir2))
             # initialize the video and progress bar for processing
             widgets_mean = ["[INFO] Processing angles and frequencies...", progressbar.Percentage(), " ", 
                 progressbar.Bar()]
@@ -211,7 +207,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
@@ -377,9 +373,9 @@ class cameraThread(QThread):
                                     # draw partial circle
                                     if angle < 0:
                                         angle = angle + 360
-                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -start_angle , -(current_angle+360), deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (ellipse_size,ellipse_size), 0, -start_angle , -(current_angle+360), deepskyblue, -1)
                                     else:
-                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -start_angle , -current_angle, deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (ellipse_size,ellipse_size), 0, -start_angle , -current_angle, deepskyblue, -1)
                                 # compute angle for CCW direction
                                 elif direction is COUNTER_CLOCKWISE:
                                     # compute delta with start angle
@@ -387,9 +383,9 @@ class cameraThread(QThread):
                                     # draw partial circle
                                     if angle < 0:
                                         angle = angle + 360
-                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -current_angle, -(start_angle+360), deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (ellipse_size,ellipse_size), 0, -current_angle, -(start_angle+360), deepskyblue, -1)
                                     else:
-                                        cv2.ellipse(image, (centerX, centerY), (15,15), 0, -current_angle , -start_angle, deepskyblue, -1)
+                                        cv2.ellipse(image, (centerX, centerY), (ellipse_size,ellipse_size), 0, -current_angle , -start_angle, deepskyblue, -1)
                                 # draw construction lines
                                 cv2.circle(image, (centerX, centerY), 3, deepskyblue, -1)
                                 cv2.circle(image, (cX, cY), 3, deepskyblue, -1)
@@ -408,28 +404,28 @@ class cameraThread(QThread):
                         angle = 0
                     # display FPS
                     real_fps = str(int(real_fps))
-                    cv2.putText(image, real_fps, (image.shape[1]-70, 20),
+                    cv2.putText(image, real_fps, (10, 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
-                    cv2.putText(image, "fps", (image.shape[1]-50, 20),
+                    cv2.putText(image, "fps", (30, 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
                     # display frequency
                     freq_string = str(freq)
                     cv2.putText(image, freq_string, (image.shape[1]-90, image.shape[0]-40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
                     cv2.putText(image, "Hz", (image.shape[1]-50, image.shape[0]-40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
                     # display angle
                     angle_string = str(int(angle))
                     cv2.putText(image, angle_string, (image.shape[1]-90, image.shape[0]-20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
                     cv2.putText(image, "deg", (image.shape[1]-50, image.shape[0]-20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
                     # update progress bar
                     frame_counter = frame_counter + 1
                     pbar_mean.update(frame_counter)
                     #cv2.imshow("Mesure angle balancier",image)
                     # convert from opencv format to pyqt format
-                    imageRGB = cv2.cvtColor(thresh_diff, cv2.COLOR_BGR2RGB)
+                    imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                     #flippedImage = cv2.flip(imageRGB, 1)
                     convertToQtFormat = QImage(imageRGB.data, imageRGB.shape[1], imageRGB.shape[0], QImage.Format_RGB888)
                     qtImage = convertToQtFormat.scaled(DISPLAYWIDTH, DISPLAYHEIGHT, Qt.KeepAspectRatio)
@@ -473,9 +469,9 @@ class App(QDialog):
         self.createCameraLayout()
         self.createButtonsLayout()
         # create main window
-        windowLayout = QVBoxLayout()
+        windowLayout = QHBoxLayout()
         windowLayout.addLayout(self.cameraLayout)
-        windowLayout.addLayout(self.buttonGroupLayout)
+        windowLayout.addLayout(self.controlPanelLayout)
         self.setLayout(windowLayout)
         # create camera feed
         self.cameraStream = cameraThread()
@@ -484,16 +480,25 @@ class App(QDialog):
         self.show()
     # create camera box layout
     def createCameraLayout(self):
-        # camera horizontal layout
         self.cameraLayout = QHBoxLayout()
+        self.cameraBox = QLabel(self)
+        self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
+        self.cameraBox.setFixedWidth(DISPLAYWIDTH)
+        self.cameraBox.setFixedHeight(DISPLAYHEIGHT)
+        self.cameraLayout.addWidget(self.cameraBox)
+    # create buttons layout
+    def createButtonsLayout(self):
+        # layout for control panel
+        self.controlPanelLayout = QVBoxLayout()
         # layout for parameter
         paramGroupBox = QWidget()
-        paramGroupBox.setStyleSheet("QLabel {font-size: 15pt; font-weight: bold; color: deepskyblue} QCheckBox {color: deepskyblue ;font-size: 12pt; font-weight: bold;}")
-        paramLayout = QVBoxLayout()
-        paramLayout.setContentsMargins(0,0,0,0)
+        paramGroupBox.setStyleSheet("QLabel {font-size: 10pt; font-weight: bold; color: deepskyblue} QCheckBox {color: deepskyblue ;font-size: 8pt; font-weight: bold;}")
+        paramLayout = QHBoxLayout()
         # duration checkbox
+        durationAngleLayout = QVBoxLayout()
         durationGroupBox = QGroupBox()
         durationGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;}")
+        durationGroupBox.setMaximumWidth(80)
         durationLayout = QVBoxLayout()
         labelDuration = QLabel("Temps")
         durationLayout.addWidget(labelDuration)
@@ -515,12 +520,13 @@ class App(QDialog):
         durationLayout.addWidget(self.duration3)
         durationLayout.addWidget(self.duration4)
         durationLayout.addWidget(self.duration5)
-        durationLayout.addStretch(1)
+        durationLayout.addStretch()
         durationGroupBox.setLayout(durationLayout)
-        paramLayout.addWidget(durationGroupBox)
-        # compute angle checkbox
+        durationAngleLayout.addWidget(durationGroupBox)
+        # display angle checkbox
         angleGroupBox = QGroupBox()
-        angleGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} " )
+        angleGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;}")
+        angleGroupBox.setMaximumWidth(80)
         angleLayout = QVBoxLayout()
         angleLabel = QLabel("Angle")
         angleLayout.addWidget(angleLabel)
@@ -528,29 +534,11 @@ class App(QDialog):
         angleLayout.addWidget(self.angleButton)
         self.angleButton.clicked.connect(self.anglePressed)
         angleGroupBox.setLayout(angleLayout)
-        paramLayout.addWidget(angleGroupBox)
-        paramGroupBox.setLayout(paramLayout)
-        self.cameraLayout.addWidget(paramGroupBox)
-        # canvas for camera stream
-        cameraGroupBox = QGroupBox()
-        cameraGroupBox.setFixedWidth(DISPLAYWIDTH)
-        cameraGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 15pt; font-weight: bold; color: deepskyblue}")
-        cameraLayout = QVBoxLayout()
-        cameraLayout.setContentsMargins(5,10,0,0)
-        cameraLabel = QLabel("Camera")
-        cameraLayout.addWidget(cameraLabel)
-        self.cameraBox = QLabel(self)
-        #self.cameraBox.setFixedWidth(DISPLAYWIDTH)
-        #self.cameraBox.setFixedHeight(DISPLAYHEIGHT)
-        #self.cameraBox.resize(DISPLAYWIDTH, DISPLAYHEIGHT)
-        #self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
-        cameraLayout.addWidget(self.cameraBox)
-        cameraLayout.addStretch(1)
-        cameraGroupBox.setLayout(cameraLayout)
-        self.cameraLayout.addWidget(cameraGroupBox)
+        durationAngleLayout.addWidget(angleGroupBox)
+        paramLayout.addLayout(durationAngleLayout)
         # slider for focus
         focusGroupBox = QGroupBox()
-        focusGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;} QLabel {font-size: 15pt; font-weight: bold; color: deepskyblue}")
+        focusGroupBox.setStyleSheet("QGroupBox {border: 2px solid deepskyblue;}")
         focusLayout = QVBoxLayout()
         angleLabel = QLabel("Focus")
         focusLayout.addWidget(angleLabel)
@@ -562,33 +550,34 @@ class App(QDialog):
         self.focusSlider.setTickPosition(QSlider.TicksBothSides)
         self.focusSlider.setTickInterval(100)
         self.focusSlider.valueChanged.connect(self.focusSliderMoved)
-        #self.focusSlider.adjustSize()
         focusLayout.addWidget(self.focusSlider, alignment = QtCore.Qt.AlignHCenter)
         focusGroupBox.setLayout(focusLayout)
-        self.cameraLayout.addWidget(focusGroupBox)
-    # create buttons layout
-    def createButtonsLayout(self):
-        self.buttonGroupLayout = QHBoxLayout()
+        paramLayout.addWidget(focusGroupBox)
+        paramGroupBox.setLayout(paramLayout)
+        self.controlPanelLayout.addWidget(paramGroupBox)
+        # layout for buttons
         buttonGroupBox = QGroupBox()
         buttonGroupBox.setStyleSheet("QPushButton {font-size: 16pt; font-weight: bold;}")
-        buttonsLayout = QHBoxLayout()
-        #buttonsLayout.setContentsMargins(0,0,0,0)
+        buttonsLayout = QVBoxLayout()
+        buttonsLayout.stretch(1)
+        buttonsLayout.setContentsMargins(0,0,0,0)
+        #buttonsLayout.addStretch(1)
+        startButton = QPushButton("START")
+        startButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        startButton.setStyleSheet("QPushButton {color: springgreen; border: 2px solid springgreen}")
+        startButton.clicked.connect(self.startPressed)
+        buttonsLayout.addWidget(startButton)
         saveButton = QPushButton("SAVE")
-        saveButton.setMinimumHeight(50)
+        saveButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         saveButton.setStyleSheet("QPushButton {color: deepskyblue; border: 2px solid deepskyblue}")
         buttonsLayout.addWidget(saveButton)
-        startButton = QPushButton("START")
-        startButton.clicked.connect(self.startPressed)
-        startButton.setMinimumHeight(50)
-        startButton.setStyleSheet("QPushButton {color: springgreen; border: 2px solid springgreen}")
-        buttonsLayout.addWidget(startButton)
         quitButton = QPushButton("QUIT")
-        quitButton.clicked.connect(self.quitPressed)
-        quitButton.setMinimumHeight(50)
+        quitButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         quitButton.setStyleSheet("QPushButton {color: red; border: 2px solid red}")
+        quitButton.clicked.connect(self.quitPressed)
         buttonsLayout.addWidget(quitButton)
         buttonGroupBox.setLayout(buttonsLayout)
-        self.buttonGroupLayout.addWidget(buttonGroupBox)
+        self.controlPanelLayout.addWidget(buttonGroupBox)
     # start button function
     def startPressed(self):
         global start_pressed
