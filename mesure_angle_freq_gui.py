@@ -23,9 +23,10 @@ DISPLAYHEIGHT = 480
 FPS = 30
 RECORD_FPS = 60
 THRESHOLD = 10
-MIN_AREA = 1000
+MIN_AREA = 150
 MIN_AREA_DIFF = 500
 BLURSIZE = (37,37)
+BLURSIZE_color = (15,15)
 blue = (255,0,0)
 deepskyblue = (255,191,0)
 red = (0,0,255)
@@ -66,12 +67,13 @@ circ_mask = np.zeros(SHAPE, dtype="uint8")
 cv2.circle(circ_mask, (centerX, centerY), radius, white, -1)
 cv2.circle(circ_mask, (centerX, centerY), inner_radius, black, -1)
 # create filter to highlight magnet
-lower_hsv = np.array([20, 100, 0])
-higher_hsv = np.array([100, 255, 255])
+lower_hsv = np.array([150, 100, 0])
+higher_hsv = np.array([179, 255, 255])
 # create empty array to compute image substraction
 previous_diff = None
 frame_diff = np.zeros(SHAPE, dtype="uint8")
 thresh_diff = np.zeros(SHAPE, dtype="uint8")
+thresh = None
 # function to get the frame number from the image path
 def get_number(imagePath):
 	return int(imagePath.split(os.path.sep)[-1][:-4])
@@ -280,7 +282,6 @@ class cameraThread(QThread):
                                 freq = round(1/(freq_frame_counter * sec_per_frame), 2)
                             freq_frame_counter = 0
                             first_swing = False
-                            print(freq)
                     # counter to compute frequency
                     freq_frame_counter = freq_frame_counter + 1
                     # save current image to compute difference with the next one
@@ -295,7 +296,7 @@ class cameraThread(QThread):
                         result_color_filter = cv2.bitwise_and(masked_image_color,masked_image_color,mask = color_mask)
                         # convert to gray and apply threshold
                         gray_color = cv2.cvtColor(result_color_filter, cv2.COLOR_BGR2GRAY)
-                        #gray = cv2.GaussianBlur(gray, BLURSIZE, 0)
+                        gray_color = cv2.GaussianBlur(gray_color, BLURSIZE, 0)
                         thresh = cv2.threshold(gray_color, THRESHOLD, 255, cv2.THRESH_BINARY)[1]
                         # grab contours
                         cnts_color = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
@@ -323,7 +324,6 @@ class cameraThread(QThread):
                                     y = y1
                                     h = h1
                                     w = w1
-                        #print(biggest_area_color)
                         # IF COLOR FILTER METHOD FOUND AN OBJECT
                         if object_fg_found:
                             # draw the contour and center of the shape on the image
@@ -353,22 +353,18 @@ class cameraThread(QThread):
                                 delta2 = previous_angle - current_angle 
                                 if delta2 < 0:
                                     delta2 = delta2 + 360
-                                wrong_value = False
-                                # check if the wheel is not moving
-                                if static_image_counter >= STATIC_COUNTER_THRESH:
+                                # check if end of swing
+                                if end_of_swing:
                                     # set new start position
-                                    startX = cX
-                                    startY = cY
-                                    start_angle = current_angle
-                                # check for noise value
-                                elif delta1 < 3 or delta2 < 3:
-                                    pass
-                                # check if the direction is CW
-                                elif delta1 <= delta2:
-                                    direction = CLOCKWISE
-                                # check if the direction is CCW
-                                elif delta2 < delta1:
-                                    direction = COUNTER_CLOCKWISE
+                                    startX = prev_cX
+                                    startY = prev_cY
+                                    start_angle = previous_angle
+                                    # check if the direction is CW
+                                    if delta1 <= delta2:
+                                        direction = CLOCKWISE
+                                    # check if the direction is CCW
+                                    elif delta2 < delta1:
+                                        direction = COUNTER_CLOCKWISE
                                 # compute angle for CW direction
                                 if direction is CLOCKWISE:
                                     # compute delta with start angle
@@ -395,7 +391,6 @@ class cameraThread(QThread):
                                 cv2.line(image, (centerX, centerY), (cX, cY), deepskyblue, 2)
                                 # save current values in previous values
                                 previous_angle = current_angle
-                                previous_direction = direction
                                 prev_cX = cX
                                 prev_cY = cY
                             # draw line from center to start position
