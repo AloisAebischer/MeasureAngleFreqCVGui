@@ -14,8 +14,8 @@ from PyQt5 import QtCore
 from imutils import paths
 
 # define some constants
-IMAGEWIDTH = 320
-IMAGEHEIGHT = 240
+IMAGEWIDTH = 640
+IMAGEHEIGHT = 480
 RESOLUTION = [IMAGEWIDTH,IMAGEHEIGHT]
 SHAPE = [IMAGEHEIGHT,IMAGEWIDTH]
 DISPLAYWIDTH = 640
@@ -25,7 +25,7 @@ RECORD_FPS = 60
 THRESHOLD = 10
 MIN_AREA = 1000
 MIN_AREA_DIFF = 500
-BLURSIZE = (15,15)
+BLURSIZE = (37,37)
 blue = (255,0,0)
 deepskyblue = (255,191,0)
 red = (0,0,255)
@@ -57,8 +57,8 @@ running = False
 # compute center coordinates and radius for drawing a target
 centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
-radius = int(centerY // 3)
-inner_radius = 4*radius // 5
+radius = int(0.28*centerY)
+inner_radius = int(0.6*radius )
 target_size = inner_radius // 2
 ellipse_size = inner_radius // 2
 # create mask to highlight circular section 
@@ -111,23 +111,23 @@ class cameraThread(QThread):
                 if ret:
                     #image = imutils.resize(image, width=DISPLAYWIDTH)
                     # draw circular area used for computation
-                    cv2.circle(image, (centerX, centerY), radius, red, 3)
-                    cv2.circle(image, (centerX, centerY), inner_radius, red, 3)
+                    cv2.circle(image, (centerX, centerY), radius, red, 2)
+                    cv2.circle(image, (centerX, centerY), inner_radius, red, 2)
                     # draw target at the center
-                    cv2.line(image, (centerX, centerY), (centerX + target_size, centerY), red, 3)
-                    cv2.line(image, (centerX, centerY), (centerX, centerY + target_size), red, 3)
-                    cv2.line(image, (centerX, centerY), (centerX - target_size, centerY), red, 3)
-                    cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 3)
+                    cv2.line(image, (centerX, centerY), (centerX + target_size, centerY), red, 2)
+                    cv2.line(image, (centerX, centerY), (centerX, centerY + target_size), red, 2)
+                    cv2.line(image, (centerX, centerY), (centerX - target_size, centerY), red, 2)
+                    cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 2)
                     # display datetime
                     ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
-                    cv2.putText(image, ts, (10, image.shape[0]-10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, green, 1)
+                    cv2.putText(image, ts, (image.shape[1]-310, 25),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, green, 1)
                     # display FPS
                     fps = str(int(RECORD_FPS))
-                    cv2.putText(image, fps, (10, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
-                    cv2.putText(image, "fps", (30, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
+                    cv2.putText(image, fps, (10, 30),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, red, 1)
+                    cv2.putText(image, "fps", (40, 30),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, red, 1)
                     # convert from opencv format to pyqt format
                     imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                     #flippedImage = cv2.flip(imageRGB, 1)
@@ -179,9 +179,11 @@ class cameraThread(QThread):
             start_position_found = False
             direction = None
             previous_direction = None
+            prev_area = 0
+            slowing_down = False
             swing_cw = False
             swing_ccw = False
-            first_swing = False
+            first_swing = True
             freq = 0.000
             angle = 0
             start_angle = 0
@@ -197,7 +199,7 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            outputDir2 = os.path.join("images", "2021-06-04-172344")
+            outputDir2 = os.path.join("images", "2021-06-11-123444")
             total_frames = 300
             imagePaths = list(paths.list_images(outputDir))
             imagePaths2 = list(paths.list_images(outputDir2))
@@ -255,33 +257,30 @@ class cameraThread(QThread):
                             (x1, y1, w1, h1) = cv2.boundingRect(c)
                             # get an approximate area of the contour
                             found_area = found_area + w1*h1 
-                    # check for moving object
-                    object_moving = False
-                    if found_area > MIN_AREA_DIFF:
-                        object_moving = True
+                    end_of_swing = False
                     # check if first image
                     if first_image_diff is None:
                         first_image_diff = True
-                        static_image_counter = STATIC_COUNTER_THRESH
-                    # if moving object
-                    elif object_moving:
-                        object_moving_counter = object_moving_counter + 1
-                        if object_moving_counter > 1 and static_image_counter > 0:
-                            static_image_counter = 0
-                            object_moving_counter = 0
-                    # if no moving object
-                    else:
-                        static_image_counter = static_image_counter + 1
+                    # check if end of swing 
+                    elif slowing_down:
+                        if found_area > prev_area:
+                            end_of_swing = True
+                            slowing_down = False
+                    # if object is slowing down
+                    elif found_area < prev_area and found_area < MIN_AREA_DIFF:
+                        slowing_down = True
+                    # save current found area 
+                    prev_area = found_area
                     # compute frequency
-                    if static_image_counter == STATIC_COUNTER_THRESH:
+                    if end_of_swing:
                         if first_swing is False:
                             first_swing = True
                         else:
                             if freq_frame_counter > 0 and sec_per_frame > 0:
                                 freq = round(1/(freq_frame_counter * sec_per_frame), 2)
-                                print(freq)
                             freq_frame_counter = 0
                             first_swing = False
+                            print(freq)
                     # counter to compute frequency
                     freq_frame_counter = freq_frame_counter + 1
                     # save current image to compute difference with the next one
@@ -408,22 +407,22 @@ class cameraThread(QThread):
                         angle = 0
                     # display FPS
                     real_fps = str(int(real_fps))
-                    cv2.putText(image, real_fps, (10, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
-                    cv2.putText(image, "fps", (30, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, red, 1)
+                    cv2.putText(image, fps, (10, 30),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, red, 1)
+                    cv2.putText(image, "fps", (40, 30),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, red, 1)
                     # display frequency
                     freq_string = str(freq)
-                    cv2.putText(image, freq_string, (image.shape[1]-90, image.shape[0]-40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
-                    cv2.putText(image, "Hz", (image.shape[1]-50, image.shape[0]-40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
+                    cv2.putText(image, freq_string, (25, image.shape[0]-60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, deepskyblue, 2)
+                    cv2.putText(image, "Hz", (90, image.shape[0]-60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, deepskyblue, 2)
                     # display angle
                     angle_string = str(int(angle))
-                    cv2.putText(image, angle_string, (image.shape[1]-90, image.shape[0]-20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
-                    cv2.putText(image, "deg", (image.shape[1]-50, image.shape[0]-20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, deepskyblue, 1)
+                    cv2.putText(image, angle_string, (25, image.shape[0]-30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, deepskyblue, 2)
+                    cv2.putText(image, "deg", (90, image.shape[0]-30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, deepskyblue, 2)
                     # update progress bar
                     frame_counter = frame_counter + 1
                     pbar_mean.update(frame_counter)
@@ -434,7 +433,7 @@ class cameraThread(QThread):
                     qtImage = convertToQtFormat.scaled(DISPLAYWIDTH, DISPLAYHEIGHT, Qt.KeepAspectRatio)
                     # display image
                     self.imageUpdate.emit(qtImage)
-                    time.sleep(0.1)
+                    time.sleep(0.2)
                     if quit_pressed:
                         quit_pressed = False
                         break
@@ -560,7 +559,7 @@ class App(QDialog):
         self.controlPanelLayout.addWidget(paramGroupBox)
         # layout for buttons
         buttonGroupBox = QGroupBox()
-        buttonGroupBox.setStyleSheet("QPushButton {font-size: 16pt; font-weight: bold;}")
+        buttonGroupBox.setStyleSheet("QPushButton {font-size: 18pt; font-weight: bold;}")
         buttonsLayout = QVBoxLayout()
         buttonsLayout.stretch(1)
         buttonsLayout.setContentsMargins(0,0,0,0)
