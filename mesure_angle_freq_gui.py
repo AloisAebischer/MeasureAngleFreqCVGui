@@ -20,13 +20,13 @@ RESOLUTION = [IMAGEWIDTH,IMAGEHEIGHT]
 SHAPE = [IMAGEHEIGHT,IMAGEWIDTH]
 DISPLAYWIDTH = 640
 DISPLAYHEIGHT = 480
-FPS = 30
-RECORD_FPS = 60
-THRESHOLD = 10
-MIN_AREA = 150
-MIN_AREA_DIFF = 500
-BLURSIZE = (37,37)
-BLURSIZE_color = (15,15)
+FPS = 60
+RECORD_FPS = 90
+THRESHOLD = 15
+MIN_AREA = 100
+MIN_AREA_DIFF = 40  
+BLURSIZE = (27,27)
+BLURSIZE_COLOR = (15,15)
 blue = (255,0,0)
 deepskyblue = (255,191,0)
 red = (0,0,255)
@@ -58,8 +58,8 @@ running = False
 # compute center coordinates and radius for drawing a target
 centerX = IMAGEWIDTH // 2
 centerY = IMAGEHEIGHT // 2
-radius = int(0.28*centerY)
-inner_radius = int(0.6*radius )
+radius = int(0.25*centerY)
+inner_radius = int(0.8*radius )
 target_size = inner_radius // 2
 ellipse_size = inner_radius // 2
 # create mask to highlight circular section 
@@ -67,8 +67,8 @@ circ_mask = np.zeros(SHAPE, dtype="uint8")
 cv2.circle(circ_mask, (centerX, centerY), radius, white, -1)
 cv2.circle(circ_mask, (centerX, centerY), inner_radius, black, -1)
 # create filter to highlight magnet
-lower_hsv = np.array([150, 100, 0])
-higher_hsv = np.array([179, 255, 255])
+lower_hsv = np.array([0, 100, 0])
+higher_hsv = np.array([80, 255, 255])
 # create empty array to compute image substraction
 previous_diff = None
 frame_diff = np.zeros(SHAPE, dtype="uint8")
@@ -110,6 +110,7 @@ class cameraThread(QThread):
             while True:
                 # grab the frame from the stream
                 ret, image = cap.read()
+                time.sleep(0.05)
                 if ret:
                     #image = imutils.resize(image, width=DISPLAYWIDTH)
                     # draw circular area used for computation
@@ -122,10 +123,10 @@ class cameraThread(QThread):
                     cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 2)
                     # display datetime
                     ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
-                    cv2.putText(image, ts, (image.shape[1]-310, 25),
+                    cv2.putText(image, ts, (image.shape[1]-290, 25),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, green, 1)
                     # display FPS
-                    fps = str(int(RECORD_FPS))
+                    fps = str(int(FPS))
                     cv2.putText(image, fps, (10, 30),
                                 cv2.FONT_HERSHEY_DUPLEX, 0.7, red, 1)
                     cv2.putText(image, "fps", (40, 30),
@@ -151,19 +152,20 @@ class cameraThread(QThread):
                     focus_changed = False
             focus_changed = True
             running = True
-            print("[INFO] Recording video at " + str(RECORD_FPS) + " FPS...")
+            print("[INFO] Recording video at " + str(FPS) + " FPS...")
             # compute total amount of frames to record
-            total_frames = int(RECORD_FPS * rec_duration / 1000)
+            total_frames = int(FPS * rec_duration / 1000)
             # create the images directory 
             outputDir = os.path.join("images",
                 datetime.now().strftime("%Y-%m-%d-%H%M%S"))
             os.makedirs(outputDir)
             # set resolution/fps for recording
-            cap.set(cv2.CAP_PROP_FPS, RECORD_FPS)
+            cap.set(cv2.CAP_PROP_FPS, FPS)
             time.sleep(1)
             # skip first 5 images
             for i in range(5):
                 ret, img = cap.read()
+            start_time = time.time()
             # loop to record images
             for i in range(total_frames):
                 ret, img = cap.read()
@@ -171,7 +173,9 @@ class cameraThread(QThread):
                 if ret:
                     filename = "{}.jpg".format(str(i).zfill(16))
                     cv2.imwrite(os.path.join(outputDir, filename), img)
-            print("[INFO] Total frames recorded = " + str(total_frames))
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print("[INFO] " + str(total_frames)  +" frames recorded in " + str(elapsed_time) + " in seconds")
             real_fps = round(1000*total_frames/rec_duration, 2)
             sec_per_frame = 1/real_fps
             #print("[INFO] Video recorded at " + str(real_fps) + " FPS")
@@ -212,7 +216,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
@@ -245,7 +249,7 @@ class cameraThread(QThread):
                                         cv2.CHAIN_APPROX_SIMPLE)
                     cnts_diff = imutils.grab_contours(cnts_diff)
                     biggest_area_diff = 0
-                    found_area = 0
+                    found_area_diff = 0
                     # loop through all found contours
                     for c in cnts_diff:
                         M = cv2.moments(c)
@@ -258,21 +262,21 @@ class cameraThread(QThread):
                             # compute the bounding box for the contour
                             (x1, y1, w1, h1) = cv2.boundingRect(c)
                             # get an approximate area of the contour
-                            found_area = found_area + w1*h1 
+                            found_area_diff = found_area_diff + w1*h1
                     end_of_swing = False
                     # check if first image
                     if first_image_diff is None:
                         first_image_diff = True
                     # check if end of swing 
                     elif slowing_down:
-                        if found_area > prev_area:
+                        if found_area_diff > prev_area and found_area_diff > MIN_AREA_DIFF:
                             end_of_swing = True
                             slowing_down = False
                     # if object is slowing down
-                    elif found_area < prev_area and found_area < MIN_AREA_DIFF:
+                    elif found_area_diff < prev_area and found_area_diff < MIN_AREA_DIFF:
                         slowing_down = True
                     # save current found area 
-                    prev_area = found_area
+                    prev_area = found_area_diff
                     # compute frequency
                     if end_of_swing:
                         if first_swing is False:
@@ -296,7 +300,7 @@ class cameraThread(QThread):
                         result_color_filter = cv2.bitwise_and(masked_image_color,masked_image_color,mask = color_mask)
                         # convert to gray and apply threshold
                         gray_color = cv2.cvtColor(result_color_filter, cv2.COLOR_BGR2GRAY)
-                        gray_color = cv2.GaussianBlur(gray_color, BLURSIZE, 0)
+                        gray_color = cv2.GaussianBlur(gray_color, BLURSIZE_COLOR, 0)
                         thresh = cv2.threshold(gray_color, THRESHOLD, 255, cv2.THRESH_BINARY)[1]
                         # grab contours
                         cnts_color = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
