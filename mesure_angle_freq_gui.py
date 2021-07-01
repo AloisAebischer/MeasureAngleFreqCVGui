@@ -125,7 +125,7 @@ class cameraThread(QThread):
                     cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 2)
                     # display datetime
                     ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
-                    cv2.putText(image, ts, (image.shape[1]-310, 25),
+                    cv2.putText(image, ts, (image.shape[1]-310, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, green, 1)
                     # display FPS
                     fps = str(int(FPS))
@@ -475,6 +475,7 @@ class App(QDialog):
         self.createButtonsLayout()
         # create main window
         windowLayout = QHBoxLayout()
+        windowLayout.setContentsMargins(0,0,0,0)
         windowLayout.addLayout(self.cameraLayout)
         windowLayout.addLayout(self.controlPanelLayout)
         self.setLayout(windowLayout)
@@ -486,8 +487,9 @@ class App(QDialog):
     # create camera box layout
     def createCameraLayout(self):
         self.cameraLayout = QHBoxLayout()
+        self.cameraLayout.setContentsMargins(0,0,0,0)
         self.cameraBox = QLabel(self)
-        self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
+        #self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
         self.cameraBox.setFixedWidth(DISPLAYWIDTH)
         self.cameraBox.setFixedHeight(DISPLAYHEIGHT)
         self.cameraLayout.addWidget(self.cameraBox)
@@ -499,6 +501,7 @@ class App(QDialog):
         paramGroupBox = QWidget()
         paramGroupBox.setStyleSheet("QLabel {font-size: 10pt; font-weight: bold; color: deepskyblue} QCheckBox {color: deepskyblue ;font-size: 8pt; font-weight: bold;}")
         paramLayout = QHBoxLayout()
+        paramLayout.setContentsMargins(0,0,5,0)
         # duration checkbox
         durationAngleLayout = QVBoxLayout()
         durationGroupBox = QGroupBox()
@@ -564,8 +567,8 @@ class App(QDialog):
         buttonGroupBox = QGroupBox()
         buttonGroupBox.setStyleSheet("QPushButton {font-size: 18pt; font-weight: bold;}")
         buttonsLayout = QVBoxLayout()
-        buttonsLayout.stretch(1)
-        buttonsLayout.setContentsMargins(0,0,0,0)
+        #buttonsLayout.stretch(1)
+        buttonsLayout.setContentsMargins(0,0,12,10)
         #buttonsLayout.addStretch(1)
         startButton = QPushButton("START")
         startButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
