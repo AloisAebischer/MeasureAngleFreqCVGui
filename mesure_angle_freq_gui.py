@@ -66,9 +66,11 @@ ellipse_size = inner_radius // 2
 circ_mask = np.zeros(SHAPE, dtype="uint8")
 cv2.circle(circ_mask, (centerX, centerY), radius, white, -1)
 cv2.circle(circ_mask, (centerX, centerY), inner_radius, black, -1)
-# create filter to highlight magnet
-lower_hsv = np.array([0, 100, 0])
-higher_hsv = np.array([80, 255, 255])
+# create color filter to highlight red parts
+lower_red_1 = (0,50,20)
+lower_red_2 = (5,255,255)
+upper_red_1 = (160,50,20)
+upper_red_2 = (180, 255,255)
 # create empty array to compute image substraction
 previous_diff = None
 frame_diff = np.zeros(SHAPE, dtype="uint8")
@@ -123,7 +125,7 @@ class cameraThread(QThread):
                     cv2.line(image, (centerX, centerY), (centerX, centerY - target_size), red, 2)
                     # display datetime
                     ts = datetime.now().strftime("%A %d %B %Y %I:%M:%S:%p")
-                    cv2.putText(image, ts, (image.shape[1]-290, 25),
+                    cv2.putText(image, ts, (image.shape[1]-310, 25),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, green, 1)
                     # display FPS
                     fps = str(int(FPS))
@@ -205,7 +207,7 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            outputDir2 = os.path.join("images", "2021-06-11-123444")
+            outputDir2 = os.path.join("images", "2021-06-30-174314")
             total_frames = 300
             imagePaths = list(paths.list_images(outputDir))
             imagePaths2 = list(paths.list_images(outputDir2))
@@ -216,7 +218,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
@@ -295,7 +297,9 @@ class cameraThread(QThread):
                         # convert the frame to HSV
                         hsv = cv2.cvtColor(masked_image_color, cv2.COLOR_BGR2HSV)
                         # create HSV color mask
-                        color_mask = cv2.inRange(hsv, lower_hsv, higher_hsv)
+                        lower_red_mask = cv2.inRange(hsv, lower_red_1, lower_red_2)
+                        upper_red_mask = cv2.inRange(hsv, upper_red_1, upper_red_2)
+                        color_mask = cv2.bitwise_or(lower_red_mask, upper_red_mask)
                         # apply HSV color mask
                         result_color_filter = cv2.bitwise_and(masked_image_color,masked_image_color,mask = color_mask)
                         # convert to gray and apply threshold
