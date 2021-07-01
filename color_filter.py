@@ -18,10 +18,10 @@ cv2.createTrackbar('lowV','image',0,255,nothing)
 cv2.createTrackbar('highV','image',255,255,nothing)
 
 # compute center
-image = cv2.imread("images/2021-06-09-163551/0000000000000000.jpg")
+image = cv2.imread("images/2021-06-30-173225/0000000000000000.jpg")
 centerX = image.shape[1] // 2
 centerY = image.shape[0] // 2
-radius = int(0.3*centerY)
+radius = int(0.25*centerY)
 inner_radius = int(0.8*radius)
 
 # create mask to highlight circular section when magnet moves
@@ -33,7 +33,7 @@ cv2.circle(mask, (centerX, centerY), inner_radius, black, -1)
  
 while(True):
     #ret, frame = cap.read()
-    frame = cv2.imread("images/2021-06-09-163551/0000000000000005.jpg")
+    frame = cv2.imread("images/2021-06-30-173638/0000000000000000.jpg")
     # get current positions of the trackbars
     ilowH = cv2.getTrackbarPos('lowH', 'image')
     ihighH = cv2.getTrackbarPos('highH', 'image')
