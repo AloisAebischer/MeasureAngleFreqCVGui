@@ -1,4 +1,8 @@
+for python3 (use pip3):
 Install cv2
+Install PyQt
+Install imutils
+Install progressbar
 
 Make the app runnable
 	-Navigate with the terminal in /home/pi/Desktop/Raspberry/Python
@@ -20,5 +24,5 @@ Install LCD-Touchscreen drivers
 	-reboot with the LCD-Touchscreen plugged
   
 Make the app runnable
-	-Navigate with the terminal in /home/pi/Desktop/Raspberry/Python
+	-cd /home/pi/Desktop/MeasureAngleFreqCVGui
 	-sudo chmod +x run.sh

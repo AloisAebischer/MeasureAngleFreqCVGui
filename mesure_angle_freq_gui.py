@@ -96,7 +96,6 @@ class cameraThread(QThread):
         global previous_diff
         global rec_duration
         global running
-        object_moving_counter = 0
         cap = cv2.VideoCapture(0)
         # main loop
         while self.ThreadActive:
@@ -487,9 +486,9 @@ class App(QDialog):
     # create camera box layout
     def createCameraLayout(self):
         self.cameraLayout = QHBoxLayout()
-        self.cameraLayout.setContentsMargins(0,0,0,0)
+        self.cameraLayout.setContentsMargins(0,0,5,0)
         self.cameraBox = QLabel(self)
-        #self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
+        self.cameraBox.setStyleSheet("QLabel {border: 2px solid deepskyblue;}")
         self.cameraBox.setFixedWidth(DISPLAYWIDTH)
         self.cameraBox.setFixedHeight(DISPLAYHEIGHT)
         self.cameraLayout.addWidget(self.cameraBox)
