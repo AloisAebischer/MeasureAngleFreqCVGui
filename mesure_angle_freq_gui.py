@@ -206,10 +206,10 @@ class cameraThread(QThread):
             found_countour = None
             prev_cX = 0
             prev_cY = 0
-            outputDir2 = os.path.join("images", "2021-06-30-174314")
+            #outputDir2 = os.path.join("images", "2021-06-30-174314")
             total_frames = 300
             imagePaths = list(paths.list_images(outputDir))
-            imagePaths2 = list(paths.list_images(outputDir2))
+            #imagePaths2 = list(paths.list_images(outputDir2))
             # initialize the video and progress bar for processing
             widgets_mean = ["[INFO] Processing angles and frequencies...", progressbar.Percentage(), " ", 
                 progressbar.Bar()]
@@ -217,7 +217,7 @@ class cameraThread(QThread):
                 widgets=widgets_mean).start()
             # loop through the images to compute angles and frequencies
             previous_diff = None
-            for (i, imagePath) in enumerate(sorted(imagePaths2, key=get_number)):
+            for (i, imagePath) in enumerate(sorted(imagePaths, key=get_number)):
                 # capture frame-by-frame
                 frame = None
                 frame = cv2.imread(imagePath)
