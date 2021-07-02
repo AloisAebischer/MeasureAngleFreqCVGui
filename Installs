@@ -1,0 +1,24 @@
+Install cv2
+
+Make the app runnable
+	-Navigate with the terminal in /home/pi/Desktop/Raspberry/Python
+	-sudo chmod +x run.sh
+
+Install LCD-Touchscreen drivers
+	-sudo nano /boot/config.txt
+	-Append the following lines at the bottom:
+		#Uncomment to set LCD screen set up
+		hdmi_group=2
+		hdmi_mode=1
+		hdmi_mode=87
+		hdmi_cvt 800 480 60 6 0 0 0	
+	-Navigate in the terminal to the Rasberry folder
+	-Install the drivers with the following commands:
+		tar xzvf joy-IT-lcd5-driver.tar.gz (if the LCD-show folder has not been decompressed yet)
+		cd LCD-show/
+		sudo bash ./LCD5-show
+	-reboot with the LCD-Touchscreen plugged
+  
+Make the app runnable
+	-Navigate with the terminal in /home/pi/Desktop/Raspberry/Python
+	-sudo chmod +x run.sh
