@@ -463,6 +463,7 @@ class App(QDialog):
         self.width = 800
         self.height = 480
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.setCursor(QtCore.Qt.BlankCursor)
         self.initUI()
     # init the UI app
     def initUI(self):
